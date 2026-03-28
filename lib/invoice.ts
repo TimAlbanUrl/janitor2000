@@ -6,6 +6,8 @@ type InvoiceData = {
     invoiceId: number;
     customerName: string;
     customerEmail: string;
+    phoneNumber: string;
+    deliveryAddress: string;
     date: string;
     items: { label: string; quantity: number; price: number }[];
     totalAmount: number;
@@ -32,7 +34,6 @@ export async function generateAndSaveInvoice(data: InvoiceData) {
             doc.fontSize(24).text("FACTURE", { align: "center" });
             doc.moveDown();
 
-            // Infos générales
             doc.fontSize(12);
             doc.text(`Facture N° : INV-${data.invoiceId}`);
             doc.text(`Date : ${data.date}`);
@@ -40,6 +41,10 @@ export async function generateAndSaveInvoice(data: InvoiceData) {
 
             doc.text(`Client : ${data.customerName}`);
             doc.text(`Email : ${data.customerEmail}`);
+            doc.text(`Téléphone : ${data.phoneNumber}`);
+            doc.moveDown(0.5);
+            doc.text(`Adresse de livraison :`);
+            doc.text(data.deliveryAddress, { indent: 20 });
             doc.moveDown(2);
 
             doc.fontSize(14).text("Détail de la commande :", { underline: true });
@@ -54,7 +59,7 @@ export async function generateAndSaveInvoice(data: InvoiceData) {
             });
 
             doc.moveDown();
-            doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke(); // Ligne de séparation
+            doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
             doc.moveDown();
 
             doc.fontSize(14);
@@ -63,7 +68,7 @@ export async function generateAndSaveInvoice(data: InvoiceData) {
             if (data.totalPaid > 0) {
                 doc.fontSize(12).fillColor("green");
                 doc.text(`Déjà réglé : ${data.totalPaid.toFixed(2)} €`, { align: "right" });
-                doc.fillColor("black"); // Remettre en noir
+                doc.fillColor("black");
 
                 const rest = data.totalAmount - data.totalPaid;
                 doc.fontSize(14);
@@ -80,12 +85,12 @@ export async function generateAndSaveInvoice(data: InvoiceData) {
             });
 
             stream.on("error", (error) => {
-                console.error("Erreur d'écriture du fichier :", error);
+                console.error(error);
                 reject(error);
             });
 
         } catch (error) {
-            console.error("Erreur générale lors de la création du PDF :", error);
+            console.error(error);
             reject(error);
         }
     });

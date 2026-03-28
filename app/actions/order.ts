@@ -29,6 +29,18 @@ export async function submitOrder(
 
     if (!customer) throw new Error("Client introuvable.");
 
+    const { data: addressData } = await supabase
+        .from("address")
+        .select("street, number, post_code, city, country(label)")
+        .eq("id", addressId)
+        .single();
+
+    let fullAddress = "Adresse non renseignée";
+    if (addressData) {
+        const countryLabel = (addressData.country as any)?.label || "";
+        fullAddress = `${addressData.number || ''} ${addressData.street || ''}, ${addressData.post_code || ''} ${addressData.city || ''} ${countryLabel}`.trim();
+    }
+
     const itemIds = items.map(i => i.itemId);
     const { data: dbItems } = await supabase
         .from("item")
@@ -98,6 +110,8 @@ export async function submitOrder(
             invoiceId: invoice.id,
             customerName: customer.name,
             customerEmail: customer.mail || "Non renseigné",
+            phoneNumber: phone,
+            deliveryAddress: fullAddress,
             date: new Date().toLocaleDateString("fr-FR"),
             items: enrichedItems,
             totalAmount: totalAmount,
