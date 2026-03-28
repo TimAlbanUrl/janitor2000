@@ -1,43 +1,115 @@
-import { redirect } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
-import { InfoIcon } from "lucide-react";
-import { FetchDataSteps } from "@/components/tutorial/fetch-data-steps";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Users, ShoppingCart, Truck } from "lucide-react";
 import { Suspense } from "react";
 
-async function UserDetails() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
+// 1. Le sous-composant asynchrone qui charge les données et vérifie l'auth
+async function DashboardContent() {
+    const supabase = await createClient();
 
-  if (error || !data?.claims) {
-    redirect("/auth/login");
-  }
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  return JSON.stringify(data.claims, null, 2);
+    // Si l'utilisateur n'est pas connecté, on le renvoie vers la page de login
+    if (authError || !user) {
+        redirect("/auth/login");
+    }
+
+    // Récupération du nom du concierge
+    const { data: janitor } = await supabase
+        .from("Janitor")
+        .select("name")
+        .eq("auth_id", user.id)
+        .single();
+
+    return (
+        <div className="flex-1 flex flex-col gap-10 w-full mt-6">
+
+            {/* En-tête du tableau de bord */}
+            <div>
+                <h1 className="text-4xl font-bold tracking-tight">
+                    Bonjour, <span className="text-primary">{janitor?.name || "Concierge"}</span> 👋
+                </h1>
+                <p className="text-muted-foreground mt-2 text-lg">
+                    Bienvenue sur votre espace de gestion Janitor 2000. Que souhaitez-vous faire aujourd&#39;hui ?
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <Card className="hover:border-primary/50 transition-colors flex flex-col justify-between shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                            <Users className="text-blue-500" /> Mes Clients
+                        </CardTitle>
+                        <CardDescription>Gérez votre portefeuille client</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Ajoutez de nouveaux clients, modifiez leurs informations et gardez un œil sur leur historique.
+                        </p>
+                        <Link href="/protected/clients">
+                            <Button className="w-full">Voir mes clients</Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+
+                {/* Carte Boutique / Commande */}
+                <Card className="hover:border-primary/50 transition-colors flex flex-col justify-between shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                            <ShoppingCart className="text-green-500" /> Nouvelle Commande
+                        </CardTitle>
+                        <CardDescription>Accédez au catalogue complet</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Parcourez les produits disponibles et passez commande pour le compte de vos clients.
+                        </p>
+                        <Link href="/protected/shop">
+                            <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                                Ouvrir le catalogue
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+
+                {/* Carte Suivi */}
+                <Card className="bg-muted/30 border-dashed flex flex-col justify-between">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-xl text-muted-foreground">
+                            <Truck /> Suivi & Historique
+                        </CardTitle>
+                        <CardDescription>Consultez vos commandes</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Suivez l&#39;état de préparation et d&#39;expédition des lots de commandes de vos clients.
+                        </p>
+                        <Button variant="secondary" className="w-full" disabled>
+                            Prochainement
+                        </Button>
+                    </CardContent>
+                </Card>
+
+            </div>
+        </div>
+    );
 }
 
+// 2. La page principale exportée, qui enveloppe le contenu dans un Suspense
 export default function ProtectedPage() {
-  return (
-    <div className="flex-1 w-full flex flex-col gap-12">
-      <div className="w-full">
-        <div className="bg-accent text-sm p-3 px-5 rounded-md text-foreground flex gap-3 items-center">
-          <InfoIcon size="16" strokeWidth={2} />
-          This is a protected page that you can only see as an authenticated
-          user
-        </div>
-      </div>
-      <div className="flex flex-col gap-2 items-start">
-        <h2 className="font-bold text-2xl mb-4">Your user details</h2>
-        <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
-          <Suspense>
-            <UserDetails />
-          </Suspense>
-        </pre>
-      </div>
-      <div>
-        <h2 className="font-bold text-2xl mb-4">Next steps</h2>
-        <FetchDataSteps />
-      </div>
-    </div>
-  );
+    return (
+        <Suspense
+            fallback={
+                <div className="flex flex-col items-center justify-center py-32 text-muted-foreground animate-pulse">
+                    <p className="text-lg">Chargement de votre espace sécurisé...</p>
+                </div>
+            }
+        >
+            <DashboardContent />
+        </Suspense>
+    );
 }
